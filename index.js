@@ -35,7 +35,9 @@ async function run() {
     
     const jobsCollection = client.db('jobVista').collection('jobs')
 
-    // get all jobs from db
+
+
+    // jobs related API
     app.get('/jobs', async(req, res)=>{
         const cursor = jobsCollection.find();
         const allJobs = await cursor.toArray();
@@ -46,6 +48,13 @@ async function run() {
         const id = req.params.id;
         const query = {_id: new ObjectId(id)};
         const result = await jobsCollection.findOne(query);
+        res.send(result)
+    })
+
+    app.post('/addJob', async(req, res) => {
+        const job = req.body;
+        console.log(job)
+        const result = await jobsCollection.insertOne(job)
         res.send(result)
     })
 
