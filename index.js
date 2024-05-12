@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const port =process.env.PORT || 5000;
+const port =process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 
@@ -57,6 +57,15 @@ async function run() {
         console.log(job)
         const result = await jobsCollection.insertOne(job)
         res.send(result)
+    })
+
+    app.get('/myJobs/:email', async(req, res)=>{
+        const email = req.params.email;
+        console.log(email);
+        const query = {'recruiter.email': email}
+        const myListedJobs = await jobsCollection.find(query).toArray();
+        res.send(myListedJobs)
+
     })
 
     // job applications related api
