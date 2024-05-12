@@ -94,6 +94,13 @@ async function run() {
         res.send(result)
     })
 
+    app.delete('/deleteJob/:id', async(req, res)=>{
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)};
+        const result = await jobsCollection.deleteOne(query)
+        res.send(result)
+    })
+
     // job applications related api
 
     app.post('/application', async(req, res)=>{
