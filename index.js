@@ -139,6 +139,15 @@ async function run() {
         res.send(result);
     })
 
+    app.get('/allJobs', async(req, res)=>{
+        const search = req.query.search;
+        let query = {
+            jobTitle: {$regex: search, $options: 'i'}
+        }
+        const result = await jobsCollection.find(query).toArray();
+        res.send(result) 
+    })
+
 
 
     // Send a ping to confirm a successful connection
