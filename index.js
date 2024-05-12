@@ -33,7 +33,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     
-    const jobsCollection = client.db('jobVista').collection('jobs')
+    const jobsCollection = client.db('jobVista').collection('jobs');
+    const applicationsCollection = client.db('jobVista').collection('applications');
 
 
 
@@ -55,6 +56,33 @@ async function run() {
         const job = req.body;
         console.log(job)
         const result = await jobsCollection.insertOne(job)
+        res.send(result)
+    })
+
+    // job applications related api
+
+    app.post('/application', async(req, res)=>{
+        const applicationData = req.body;
+        console.log(applicationData);
+
+        const query = {
+            email: applicationData.email,
+            jobId: applicationData.jobId,
+        }
+        const alreadyApplied = await applicationsCollection.findOne(query)
+        if(alreadyApplied){
+            return res
+            .status(400)
+            .send("You've already applied for the position")
+        }
+        const result = await applicationsCollection.insertOne(applicationData)
+        // update applicants count in db
+        const updateDoc = {
+            $inc: {applicants_count: 1}
+        }
+        const jobQuery = {_id: new ObjectId(applicationData.jobId)}
+        const updateCount = await jobsCollection.updateOne(jobQuery, updateDoc)
+        console.log(updateCount)
         res.send(result)
     })
 
