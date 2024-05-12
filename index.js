@@ -130,7 +130,11 @@ async function run() {
 
     app.get('/appliedJobs/:email', async(req, res)=>{
         const email = req.params.email;
+        console.log(email)
         const query = {email: email};
+        const filter = req.query.filter;
+        console.log(filter)
+        if(filter) query.appliedJobCategory = filter;
         const result = await applicationsCollection.find(query).toArray();
         res.send(result);
     })
