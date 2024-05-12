@@ -68,6 +68,32 @@ async function run() {
 
     })
 
+    app.put('/update/:id', async(req, res)=>{
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)};
+        const options = { upsert: true };
+        const updatedJobData = req.body;
+        console.log(updatedJobData)
+        const updateJob = {
+            $set: {
+                photo:updatedJobData.photo,
+                jobTitle:updatedJobData.jobTitle,
+                company:updatedJobData.company,
+                jobCategory:updatedJobData.jobCategory,
+                jobDescription:updatedJobData.jobDescription,
+                minSalary:updatedJobData.minSalary,
+                maxSalary:updatedJobData.maxSalary,
+                publishedDate:updatedJobData.publishedDate,
+                deadLine:updatedJobData.deadLine,
+                applicants_count:updatedJobData.applicants_count
+                
+            }
+        }
+        // console.log(updateJob)
+        const result = await jobsCollection.updateOne(query, updateJob, options);
+        res.send(result)
+    })
+
     // job applications related api
 
     app.post('/application', async(req, res)=>{
