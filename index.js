@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const port =process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
@@ -16,6 +18,7 @@ const corsOptions ={
 
 app.use(cors(corsOptions))
 app.use(express.json());
+app.use(cookieParser())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.al6znur.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -30,12 +33,57 @@ const client = new MongoClient(uri, {
   }
 });
 
+// middleware
+
+const logger = (req, res, next)=>{
+    console.log('log info', req.method, req.url)
+    next()
+}
+
+const verifyToken = (req, res, next) =>{
+    const token = req?.cookies?.token;
+    console.log('token in the middleware', token)
+    if(!token) {
+        return res.status(401).send({message: 'Unauthorized Access'})
+    }       
+    if(token){
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+            if(err){
+                return res.status(401).send({message: 'Unauthorized access'})
+            }
+            req.user = decoded;
+            next()
+        })
+    }
+    
+}
+
 async function run() {
   try {
     
     const jobsCollection = client.db('jobVista').collection('jobs');
     const applicationsCollection = client.db('jobVista').collection('applications');
 
+    // auth related API
+    app.post ('/jwt', async(req, res)=>{
+        const user = req.body;
+        console.log('user for token', user)
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '365d'})
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none'
+        })
+        .send({success:true});
+    }) 
+
+    app.post('/logout', async(req, res)=>{
+        const user = req.user;
+        console.log('logged out user', user)
+        res.clearCookie('token', {maxAge: 0})
+        .send({success: true})
+    })
 
 
     // jobs related API
@@ -59,9 +107,13 @@ async function run() {
         res.send(result)
     })
 
-    app.get('/myJobs/:email', async(req, res)=>{
+    app.get('/myJobs/:email', logger, verifyToken, async(req, res)=>{
         const email = req.params.email;
         console.log(email);
+        console.log('token owner info', req.user)
+        if(req.user.email !== req.params.email){
+            return res.status(403).send({message: 'Forbidden Access'})
+        }
         const query = {'recruiter.email': email}
         const myListedJobs = await jobsCollection.find(query).toArray();
         res.send(myListedJobs)
@@ -128,10 +180,14 @@ async function run() {
         res.send(result)
     })
 
-    app.get('/appliedJobs/:email', async(req, res)=>{
+    app.get('/appliedJobs/:email', verifyToken, async(req, res)=>{
         const email = req.params.email;
         console.log(email)
         const query = {email: email};
+        console.log('token owner info', req.user)
+        if(req.user.email !== email){
+            return res.status(403).send({message: 'Forbidden Access'})
+        }
         const filter = req.query.filter;
         console.log(filter)
         if(filter) query.appliedJobCategory = filter;
